@@ -8,8 +8,6 @@ permission_store_built_sources = gnome.gdbus_codegen(
 
 db_sources = files(
   'permission-db.c',
-  'gvdb/gvdb-reader.c',
-  'gvdb/gvdb-builder.c',
 )
 
 xdg_permission_store_sources = [
@@ -24,7 +22,7 @@ xdg_permission_store_sources = [
 xdg_permission_store = executable(
   'xdg-permission-store',
   xdg_permission_store_sources,
-  dependencies: xdg_desktop_portal_deps,
+  dependencies: [xdg_desktop_portal_deps, gvdb_dep],
   include_directories: incs_xdg_desktop_portal,
   install: true,
   install_dir: libexecdir,
@@ -64,7 +62,7 @@ xdg_document_portal_sources = [
 xdg_document_portal = executable(
   'xdg-document-portal',
   xdg_document_portal_sources,
-  dependencies: [xdg_desktop_portal_deps, fuse3_dep],
+  dependencies: [xdg_desktop_portal_deps, fuse3_dep, gvdb_dep],
   include_directories: incs_xdg_desktop_portal,
   install: true,
   install_dir: libexecdir,

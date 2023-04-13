@@ -113,6 +113,10 @@ pipewire_dep = dependency('libpipewire-0.3',
                           required: get_option('pipewire'))
 libsystemd_dep = dependency('libsystemd', required: get_option('systemd'))
 
+# Import the gvdb sources as a subproject to avoid having the copylib in-tree
+subproject('gvdb')
+gvdb_dep = dependency('gvdb')
+
 bwrap_required = host_machine.system() in ['linux']
 bwrap = find_program('bwrap', required: bwrap_required)
 
