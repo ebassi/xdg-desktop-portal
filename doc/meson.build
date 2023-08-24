@@ -1,44 +1,55 @@
-if build_docbook
-  xslfile = files('xmlto-config.xsl')
+gdbus_codegen = find_program('gdbus-codegen', native: true, required: get_option('documentation'))
+sphinx_build = find_program('sphinx-build', native: true, required: get_option('documentation'))
 
-  portal_docs_xml = configure_file(
-    input: 'portal-docs.xml.in',
-    output: '@BASENAME@',
-    configuration: {
-      'VERSION': meson.project_version(),
-    },
-  )
+if get_option('documentation').enabled() and gdbus_codegen.found() and sphinx_build.found()
+  fs = import('fs')
 
-  docs = custom_target(
-    'html',
-    build_by_default: true,
-    depends: [portal_built_sources, impl_built_sources],
-    input: portal_docs_xml,
-    output: 'portal-docs.html',
-    command: [xmlto, get_option('xmlto-flags'), 'xhtml-nochunks',
-              '-o', '@OUTDIR@',
-              '-m', xslfile,
-              '--searchpath', meson.project_build_root() / 'src',
-              '@INPUT@'],
-    install: true,
-    install_dir: docs_dir,
-  )
-  doc_extra = files(
-      'docbook.css',
-      'redirect.html'
-  )
-  foreach f : doc_extra
-      configure_file(
-        input: f,
-        output: '@PLAINNAME@',
-        copy: true,
-        install: true,
-        install_dir: docs_dir,
-      )
+  # Gather the XML files under data
+  all_interfaces_xml = []
+  foreach i: portal_sources
+    all_interfaces_xml += i
   endforeach
+  foreach i: portal_impl_sources
+    all_interfaces_xml += i
+  endforeach
+
+  # Replace the extension for gdbus-codegen
+  all_interfaces_rst = []
+  foreach i: all_interfaces_xml
+    f = fs.name(i)
+    all_interfaces_rst += fs.replace_suffix(f, '.rst')
+  endforeach
+
+  interfaces_rst = custom_target('interfaces_rst',
+    input: all_interfaces_xml,
+    output: all_interfaces_rst,
+    command: [ gdbus_codegen, '--generate-rst', 'doc/doc', '@INPUT@' ],
+  )
+
+  docs_sources = [
+    'conf.py',
+
+    'index.rst',
+    'common-conventions.rst',
+    'portals-conf.rst',
+    'portal-interfaces.rst',
+    'implementation-interfaces.rst',
+  ]
+
+  copied_docs_sources = []
+  foreach d: docs_sources
+    copied_docs_sources += fs.copyfile(d)
+  endforeach
+
+  custom_target('docs',
+    input: copied_docs_sources + interfaces_rst,
+    output: 'html',
+    command: [ sphinx_build, meson.current_build_dir(), '@OUTPUT@' ],
+    build_by_default: true,
+  )
 endif
 
-if rst2man.found()
+if get_option('man-pages').enabled() and rst2man.found()
   rst2man_flags = [
     '--syntax-highlight=none',
   ]
